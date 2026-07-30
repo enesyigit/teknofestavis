@@ -1,0 +1,19 @@
+path: ../datasets/arac_renk_veriseti
+train: train/images
+val: val/images
+test: test/images
+
+# Sınıf Sayısı (Number of Classes)
+nc: 9
+
+# Modelin Eğitildiği Sabit Sıralı Sınıf İsimleri
+names:
+  0: beyaz
+  1: siyah
+  2: gri
+  3: kirmizi
+  4: mavi
+  5: sari
+  6: yesil
+  7: turuncu
+  8: kahverengi

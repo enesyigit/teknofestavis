@@ -1,0 +1,72 @@
+# ============================================================
+# Teknofest AVIS — requirements.txt
+# Hedef: Tesla T4 GPU | CUDA 12.1 | TensorRT 8.6
+# ============================================================
+#
+# KURULUM SIRASI ÖNEMLİDİR — Dockerfile'da sıralı pip install kullan.
+# Bu dosyayı direkt "pip install -r requirements.txt" ile çalıştırmak
+# PyTorch ve PaddlePaddle için özel index-url gerektirdiğinden
+# Docker'da ayrı RUN komutlarına bölünmüştür (Dockerfile'a bakın).
+#
+# Yerel test (Windows/CPU):
+#   pip install timm supervision opencv-python Pillow numpy scipy shapely
+#   (PyTorch zaten kuruluysa torch/torchvision'ı atla)
+# ============================================================
+
+
+# ── 1. PyTorch CUDA 12.1 ────────────────────────────────────
+# Docker RUN komutu:
+#   pip install torch==2.1.2+cu121 torchvision==0.16.2+cu121 \
+#     --extra-index-url https://download.pytorch.org/whl/cu121
+torch==2.1.2+cu121
+torchvision==0.16.2+cu121
+torchaudio==2.1.2+cu121     # isteğe bağlı ama bazı supervision versiyonları ister
+
+
+# ── 2. Model Mimarileri ──────────────────────────────────────
+timm==0.9.12                 # EfficientNet-B0 + MobileNetV3-Large mimarileri
+                             # Hem Docker hem yerel Windows'ta gerekli
+
+
+# ── 3. TensorRT Python Bindings ─────────────────────────────
+# aracplak.engine (FP16) inference için zorunlu — sadece Docker/Linux+GPU
+# nvidia/cuda base image'da TRT runtime zaten var,
+# ama Python bindings ayrıca kurulmalı.
+tensorrt==8.6.1.6
+nvidia-cuda-runtime-cu12==12.1.105   # CUDA runtime Python paketi
+pycuda==2022.2.2                     # CUDA memory yönetimi (TRT wrapper için)
+
+
+# ── 4. PaddlePaddle GPU + PaddleOCR ─────────────────────────
+# Docker RUN komutu (özel index gerektirir):
+#   pip install paddlepaddle-gpu==2.6.0.post120 \
+#     -f https://www.paddlepaddle.org.cn/whl/linux/mkl/avx/stable.html
+# PP-OCRv4 plaka metin okuma için zorunlu — sadece Docker/T4
+paddlepaddle-gpu==2.6.0.post120
+paddleocr==2.7.3
+
+
+# ── 5. Bilgisayar Görüsü ────────────────────────────────────
+# opencv-python-headless: GUI/display gerektirmez (sunucu ortamı için)
+opencv-python-headless==4.9.0.80
+Pillow==10.2.0
+numpy==1.24.4
+
+
+# ── 6. ByteTrack / Takip ─────────────────────────────────────
+# supervision: ByteTrack implementasyonu içerir
+# Hem Docker hem yerel Windows'ta gerekli
+supervision==0.19.0
+lap==0.4.0                   # supervision/ByteTrack doğrusal atama için
+
+
+# ── 7. Yardımcı / Bağımlılıklar ─────────────────────────────
+scipy==1.11.4
+shapely==2.0.3               # supervision geometric utils
+filterpy==1.4.5              # Kalman filtresi (ByteTrack iç bağımlılığı)
+python-dotenv==1.0.0         # Ortam değişkenleri (.env dosyası)
+
+
+# ── 8. Loglama / İzleme ─────────────────────────────────────
+# (isteğe bağlı — production logging için)
+# tqdm==4.66.2               # ilerleme çubuğu

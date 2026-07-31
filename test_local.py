@@ -11,7 +11,7 @@ TensorRT/Docker GEREKTIRMEYEN testler:
   [SKIP] TRT Engine -> Docker'da test edilecek
 
 Calistirma:
-  cd C:\\Users\\enesk\\Desktop\\teknofest_avis
+  cd /path/to/teknofest_avis
   python test_local.py
 """
 

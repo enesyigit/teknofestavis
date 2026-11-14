@@ -11,7 +11,9 @@ Trafik videosundan **araç tipi, plaka, renk ve sürücü eylemlerini** tek geç
 | Araç tipi | sedan, suv, hatchback, pickup, minibus, panelvan, kamyon (7 sınıf) |
 | Plaka | Türk plaka formatı, boşluksuz (`34ABC123`) |
 | Renk | beyaz, siyah, gri, kırmızı, mavi, sarı, yeşil, turuncu, kahverengi (9 sınıf) |
-| Sürücü eylemi | su içme, telefonla konuşma, arkaya bakma, sigara içme, emniyet kemeri ihlali, etrafa bakınma, slalom — frame bazlı, zaman damgalı |
+| Sürücü eylemi | su içme, telefonla konuşma, arkaya bakma, sigara içme, emniyet kemeri ihlali, etrafa bakınma, esneme (7 sınıf) — frame bazlı, zaman damgalı |
+
+**Slalom** yarışma etiketleri arasında yer alıyor ancak bu sürümde henüz implemente edilmedi: `src/action_detector.py` içindeki `SlalomDetector` bir iskelet olup her zaman `(None, 0.0)` döner ve pipeline'da çağrılmaz. Planlanan yaklaşım: optik akış / şerit değişim frekansı analizi.
 
 ## Pipeline
 
@@ -26,8 +28,8 @@ WindshieldEstimator ── araç + plaka bbox'ından ön cam (sürücü) bölges
   ▼
 ┌─ BodyClassifier   EfficientNet-B0     7 kasa tipi
 ├─ ColorClassifier  MobileNetV3         9 renk
-├─ ActionDetector   MobileNetV3         7 sürücü eylemi + slalom
-└─ OCRReader        PaddleOCR PP-OCRv4  plaka metni
+├─ ActionDetector   MobileNetV3         7 sürücü eylemi
+└─ OCRReader        PaddleOCR            plaka metni
   ▼
 VehicleCache ── oy birleştirme + 0.85 güven kilidi
   ▼
@@ -38,18 +40,18 @@ OutputBuilder ── şema doğrulama → results.json
 
 | Dosya | Görev | Satır |
 | --- | --- | ---: |
-| `main.py` | Pipeline orkestrasyonu: video okuma, model yükleme, birincil araç seçimi, süre bütçesi (570 s), JSON üretimi | 313 |
-| `src/trt_engine.py` | TensorRT FP16 engine sarmalayıcı: letterbox, NMS, çıktı decode, ONNX'ten engine derleme | 308 |
-| `src/action_detector.py` | Sürücü eylemi sınıflandırıcı + `SlalomDetector` | 287 |
-| `src/ocr_reader.py` | PaddleOCR ile plaka okuma, Türk plaka formatı doğrulama, retry | 238 |
-| `src/vehicle_cache.py` | Track başına oy birleştirme (`majority_vote`, `weighted_majority_vote`), 0.85 güven kilidi | 235 |
-| `src/windshield_estimator.py` | Araç/plaka geometrisinden ön cam bölgesi tahmini (fallback'li) | 233 |
-| `src/output_builder.py` | Yarışma şemasında `results.json`, etiket doğrulama, tekrar eleme | 223 |
-| `src/vehicle_detector.py` | Araç + plaka tespiti, ByteTrack ile ID atama, plaka–araç eşleştirme | 213 |
-| `src/body_classifier.py` | Kasa tipi sınıflandırıcı (EfficientNet-B0) | 165 |
-| `src/color_classifier.py` | Renk sınıflandırıcı (MobileNetV3) | 158 |
+| `main.py` | Pipeline orkestrasyonu: video okuma, model yükleme, birincil araç seçimi, süre bütçesi (570 s), JSON üretimi | 378 |
+| `src/trt_engine.py` | TensorRT FP16 engine sarmalayıcı: letterbox, NMS, çıktı decode, ONNX'ten engine derleme | 374 |
+| `src/action_detector.py` | Sürücü eylemi sınıflandırıcı (7 sınıf); `SlalomDetector` iskeleti (henüz aktif değil) | 341 |
+| `src/ocr_reader.py` | PaddleOCR ile plaka okuma, Türk plaka formatı doğrulama, retry | 290 |
+| `src/vehicle_cache.py` | Track başına oy birleştirme (`majority_vote`, `weighted_majority_vote`), 0.85 güven kilidi | 288 |
+| `src/windshield_estimator.py` | Araç/plaka geometrisinden ön cam bölgesi tahmini (fallback'li) | 284 |
+| `src/output_builder.py` | Yarışma şemasında `results.json`, etiket doğrulama, tekrar eleme | 270 |
+| `src/vehicle_detector.py` | Araç + plaka tespiti, ByteTrack ile ID atama, plaka–araç eşleştirme | 254 |
+| `src/body_classifier.py` | Kasa tipi sınıflandırıcı (EfficientNet-B0) | 196 |
+| `src/color_classifier.py` | Renk sınıflandırıcı (MobileNetV3) | 191 |
 
-`src/` toplamı ≈ 2.060 satır; `test_local.py` 463, `main.py` 313 satır.
+`src/` toplamı ≈ 2.490 satır; `test_local.py` 568 satır.
 
 ## Çıktı formatı
 
@@ -91,28 +93,30 @@ Temel imaj `nvidia/cuda:12.1.0-cudnn8-runtime-ubuntu22.04`, hedef GPU Tesla T4 (
 ### Yerel (Windows / CPU, Docker'sız)
 
 ```bash
-pip install timm supervision opencv-python Pillow numpy scipy shapely
+pip install torch torchvision timm supervision opencv-python Pillow numpy
 python test_local.py
 ```
 
-TensorRT ve Paddle GPU yolları yalnızca Docker imajında çalışır; `test_local.py` bu kısımları atlar.
+PyTorch/torchvision kurulu olmalı; PaddlePaddle Docker dışında yoksa `test_local.py` bu testi **FAIL** olarak raporlar (beklenen davranış). TensorRT ve Paddle GPU yolları yalnızca Docker imajında çalışır.
 
 ### Model ağırlıkları
 
-Ağırlıklar Git LFS ile geliyor:
+Büyük ağırlıklar Git LFS ile geliyor:
 
 ```bash
 git lfs install
 git lfs pull
 ```
 
-| Dosya | Model |
-| --- | --- |
-| `models/aracplak.engine` | Araç + plaka dedektörü (TensorRT FP16) |
-| `models/efficientb0arakasa.pth` | Kasa tipi, EfficientNet-B0 |
-| `models/araçrenktespit/.../arac_renk_mobilenetv3.pth` | Renk, MobileNetV3 |
-| `models/paddle_models/model.pdparams`, `model.pdopt` | PaddleOCR tanıma modeli |
-| `mobilenetv3_surucu_hareketleri/` | Sürücü eylemi, MobileNetV3 (torch.save zip formatı) |
+| Dosya | Model | Not |
+| --- | --- | --- |
+| `models/aracplak.engine` | Araç + plaka dedektörü (TensorRT FP16) | LFS |
+| `models/efficientb0arakasa.pth` | Kasa tipi, EfficientNet-B0 | LFS |
+| `models/araçrenktespit/.../arac_renk_mobilenetv3.pth` | Renk, MobileNetV3 | LFS |
+| `models/paddle_models/model.pdparams` | PaddleOCR özel eğitilmiş tanıma modeli | LFS |
+| `models/paddle_models/model.pdopt` | Eğitim optimizer durumu | LFS · inference'ta kullanılmaz, Docker imajında silinir |
+
+`mobilenetv3_surucu_hareketleri/` sürücü eylemi modeli `torch.save` ile klasör olarak kaydedilmiş (`data.pkl` + `data/` parçaları); LFS kapsamında değil, normal git nesnesi olarak geliyor.
 
 ## Tasarım kararları
 
@@ -122,24 +126,23 @@ git lfs pull
 - **ByteTrack** — tespit kutularını track_id'ye bağlar; araç bilgisi ve eylemler aynı araç altında toplanır.
 - **Geometrik ön cam tahmini** — sürücü bölgesi için ayrı bir model yerine araç/plaka bbox oranları kullanılır; düşük güvende fallback bölge döner, asla `None` dönmez.
 - **570 saniyelik süre bütçesi** — 10 dakikalık limit için güvenli marj; aşılırsa pipeline elindeki sonuçla kapanır.
-- **Parametrik model yolları** — aynı kod hem Docker'da hem Kaggle T4 testinde (`kaggle_test.py`) çalışır.
+- **Parametrik model yolları** — model yolları tek yerden yönetilir; Docker imajında ve GPU testinde aynı kod değişiklik gerektirmeden çalışır.
 
 ## Test
 
 | Komut | Ne yapar |
 | --- | --- |
-| `python test_local.py` | Docker/TensorRT gerektirmeyen testler: model yükleme, dummy inference, ön cam geometrisi, oy birleştirme + kilit, JSON şema doğrulama |
-| `python kaggle_test.py` | Kaggle T4 üzerinde uçtan uca deneme (submission'a girmez) |
+| `python test_local.py` | Docker/TensorRT gerektirmeyen testler: model yükleme, dummy inference, ön cam geometrisi, oy birleştirme + kilit, JSON şema doğrulama. PaddlePaddle yoksa ilgili test FAIL raporlanır. |
 
 ## Ekip ve katkı dağılımı
 
-> Git geçmişine göre: 17 Temmuz 2026 tarihli `22f7981` "Initial commit" yalnızca `README.md` (tek satır) ve `.gitattributes` içeriyor. Uygulama kodunun tamamı, `979702e` "Add teknofest_avis project files" commit'i ile (362 dosya, +3.651 satır) eklenmiştir.
+> Git geçmişine göre: 17 Temmuz 2026 tarihli `22f7981` "Initial commit" yalnızca `README.md` (tek satır) ve `.gitattributes` içeriyor. Uygulama kodunun ana gövdesi `979702e` "Add teknofest_avis project files" commit'i ile (362 dosya, +3.651 satır) eklendi.
 
 | Kişi | Katkı |
 | --- | --- |
-| **Enes Ketenci** — [@ketenci7enes](https://github.com/ketenci7enes) | Mimari ve uygulama kodunun tamamı: `main.py`, `src/` (9 modül, ~2.060 satır), `Dockerfile`, `requirements.txt`, `test_local.py`, `kaggle_test.py`, model entegrasyonu, yarışma çıktı şeması ve doğrulaması |
-| **Enes Yiğit** — [@enesyigit](https://github.com/enesyigit) | Repo kurulumu, `.gitattributes`, Git LFS altyapısı ve büyük model dosyalarının LFS ile yüklenmesi, "remove hardcoded local path" düzeltmesi |
+| **Enes Ketenci** — [@ketenci7enes](https://github.com/ketenci7enes) | Mimari ve uygulama kodunun ana gövdesi: `main.py`, `src/` (9 modül, ~2.490 satır), `Dockerfile`, `requirements.txt`, `test_local.py`, model entegrasyonu, yarışma çıktı şeması ve doğrulaması |
+| **Enes Yiğit** — [@enesyigit](https://github.com/enesyigit) | Repo kurulumu, `.gitattributes`, Git LFS altyapısı ve büyük model dosyalarının LFS ile yeniden yüklenmesi (`225f328`), "remove hardcoded local path" düzeltmesi (`c3c191a`) |
 
-> Not: 30 Temmuz 2026'da repo, Git LFS'e geçiş sırasında yeniden başlatıldığı için önceki commit geçmişi bu repoda görünmüyor; kod içeriği aynıdır.
+> Not: 30 Temmuz 2026'da repo, Git LFS'e geçiş sırasında yeniden başlatıldı (`225f328` ayrı bir kök commit). Bu tarihten önceki commit geçmişi bu repoda görünmüyor; dosyaların bir kısmı yeniden yükleme sırasında güncellendi.
 
 İletişim: [@ketenci7enes](https://github.com/ketenci7enes)

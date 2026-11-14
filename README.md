@@ -126,7 +126,7 @@ git lfs pull
 - **ByteTrack** — tespit kutularını track_id'ye bağlar; araç bilgisi ve eylemler aynı araç altında toplanır.
 - **Geometrik ön cam tahmini** — sürücü bölgesi için ayrı bir model yerine araç/plaka bbox oranları kullanılır; düşük güvende fallback bölge döner, asla `None` dönmez.
 - **570 saniyelik süre bütçesi** — 10 dakikalık limit için güvenli marj; aşılırsa pipeline elindeki sonuçla kapanır.
-- **Model yolları tek blokta** — tüm model yolları `main.py` içinde (`MODEL_DIR` ve türevleri) tanımlı; OCR modeli ayrıca `src/ocr_reader.py` içinde kendi aday yollarıyla çözülüyor. Farklı bir ortamda çalıştırmak için bu sabitlerin güncellenmesi gerekir (ortam değişkeniyle override edilmez).
+- **Model yolları tek blokta** — ana model yolları `main.py` içinde (`MODEL_DIR` ve türevleri) tanımlı; OCR modeli ayrıca `src/ocr_reader.py` içinde kendi aday yollarıyla çözülüyor. Farklı bir ortamda çalıştırmak için bu sabitlerin güncellenmesi gerekir (ortam değişkeniyle override edilmez).
 
 ## Test
 
@@ -136,8 +136,8 @@ git lfs pull
 
 ## Kaynaklar ve uyarlamalar
 
-- `src/windshield_estimator.py` — ön cam bölgesi tahmini, referans bir kod taslağından (dosya başlığında belirtilen kaynak) başlangıç alınarak bu projenin araç/plaka bbox formatına ve pipeline'ına göre yeniden yazılmıştır.
-- Model ağırlıkları ve mimariler üçüncü taraf açık modellere dayanır: YOLO tabanlı araç/plaka dedektörü (TensorRT engine), EfficientNet-B0 (kasa), MobileNetV3 (renk, sürücü eylemi), PaddleOCR (plaka metni). Eğitim/ince ayar veri setleri bu depoda yer almaz.
+- `src/windshield_estimator.py` — ön cam bölgesi tahmini, referans bir kod taslağından (dosya başlığında belirtilen kaynak) başlangıç alınarak bu projenin araç/plaka bbox formatına ve pipeline'ına göre uyarlanmıştır.
+- **Mimariler** üçüncü taraf açık modellere dayanır: EfficientNet-B0 (kasa), MobileNetV3 (renk, sürücü eylemi), PaddleOCR (plaka metni) ve YOLO formatında çıktı veren araç/plaka dedektörü (`aracplak.engine`, TensorRT). **Ağırlıklar** bu sınıf kümeleri için projede eğitilmiş/ince ayar edilmiştir; eğitim veri setleri bu depoda yer almaz.
 - `main.py` ve `src/ocr_reader.py` içindeki birkaç yorum satırı, kaldırılan Kaggle deneme akışından kalmıştır (kod davranışını etkilemez).
 
 ## Ekip ve katkı dağılımı

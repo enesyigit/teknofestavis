@@ -97,11 +97,11 @@ pip install torch torchvision timm supervision opencv-python Pillow numpy
 python test_local.py
 ```
 
-PyTorch/torchvision kurulu olmalı; PaddlePaddle Docker dışında yoksa `test_local.py` bu testi **FAIL** olarak raporlar (beklenen davranış). TensorRT ve Paddle GPU yolları yalnızca Docker imajında çalışır.
+PyTorch/torchvision kurulu olmalı; PaddlePaddle Docker dışında kurulu değilse `test_local.py` bu testi **FAIL** olarak raporlar (beklenen davranış). TensorRT ve Paddle GPU yolları yalnızca Docker imajında çalışır.
 
 ### Model ağırlıkları
 
-Büyük ağırlıklar Git LFS ile geliyor:
+Büyük ağırlıkların çoğu Git LFS ile geliyor (aşağıdaki tablo):
 
 ```bash
 git lfs install
@@ -126,13 +126,19 @@ git lfs pull
 - **ByteTrack** — tespit kutularını track_id'ye bağlar; araç bilgisi ve eylemler aynı araç altında toplanır.
 - **Geometrik ön cam tahmini** — sürücü bölgesi için ayrı bir model yerine araç/plaka bbox oranları kullanılır; düşük güvende fallback bölge döner, asla `None` dönmez.
 - **570 saniyelik süre bütçesi** — 10 dakikalık limit için güvenli marj; aşılırsa pipeline elindeki sonuçla kapanır.
-- **Parametrik model yolları** — model yolları tek yerden yönetilir; Docker imajında ve GPU testinde aynı kod değişiklik gerektirmeden çalışır.
+- **Model yolları tek blokta** — tüm model yolları `main.py` içinde (`MODEL_DIR` ve türevleri) tanımlı; OCR modeli ayrıca `src/ocr_reader.py` içinde kendi aday yollarıyla çözülüyor. Farklı bir ortamda çalıştırmak için bu sabitlerin güncellenmesi gerekir (ortam değişkeniyle override edilmez).
 
 ## Test
 
 | Komut | Ne yapar |
 | --- | --- |
 | `python test_local.py` | Docker/TensorRT gerektirmeyen testler: model yükleme, dummy inference, ön cam geometrisi, oy birleştirme + kilit, JSON şema doğrulama. PaddlePaddle yoksa ilgili test FAIL raporlanır. |
+
+## Kaynaklar ve uyarlamalar
+
+- `src/windshield_estimator.py` — ön cam bölgesi tahmini, referans bir kod taslağından (dosya başlığında belirtilen kaynak) başlangıç alınarak bu projenin araç/plaka bbox formatına ve pipeline'ına göre yeniden yazılmıştır.
+- Model ağırlıkları ve mimariler üçüncü taraf açık modellere dayanır: YOLO tabanlı araç/plaka dedektörü (TensorRT engine), EfficientNet-B0 (kasa), MobileNetV3 (renk, sürücü eylemi), PaddleOCR (plaka metni). Eğitim/ince ayar veri setleri bu depoda yer almaz.
+- `main.py` ve `src/ocr_reader.py` içindeki birkaç yorum satırı, kaldırılan Kaggle deneme akışından kalmıştır (kod davranışını etkilemez).
 
 ## Ekip ve katkı dağılımı
 
